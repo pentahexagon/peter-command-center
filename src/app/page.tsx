@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Menu, X, ChevronLeft, ChevronRight, Plus, Filter, Check } from "lucide-react";
 
 type TabType = "overview" | "schedule" | "tasks" | "finance";
 
@@ -30,570 +29,12 @@ const SAMPLE_TASKS: Task[] = [
   { id: 5, text: "한국 법인 설립 서류 검토", co: "kr", pr: "normal", done: false },
 ];
 
-const COMPANY_COLORS: Record<string, { bg: string; text: string; light: string }> = {
-  eij: { bg: "bg-green-600", text: "text-white", light: "bg-green-100 text-green-700" },
-  penta: { bg: "bg-purple-600", text: "text-white", light: "bg-purple-100 text-purple-700" },
-  bf: { bg: "bg-amber-600", text: "text-white", light: "bg-amber-100 text-amber-700" },
-  kr: { bg: "bg-gray-600", text: "text-white", light: "bg-gray-100 text-gray-700" },
-};
-
 const COMPANY_NAMES: Record<string, string> = {
-  eij: "EIJ Construction",
-  penta: "Pentahexagon",
+  eij: "EIJ",
+  penta: "Penta",
   bf: "BeyondFleet",
-  kr: "한국 인테리어",
+  kr: "한국",
 };
-
-export default function Home() {
-  const [activeTab, setActiveTab] = useState<TabType>("overview");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [currentTime, setCurrentTime] = useState<string>("");
-  const [events, setEvents] = useState<Event[]>([]);
-  const [tasks, setTasks] = useState<Task[]>(SAMPLE_TASKS);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [currentWeek, setCurrentWeek] = useState<Date>(new Date());
-  const [taskFilter, setTaskFilter] = useState({ company: "all", priority: "all", status: "all" });
-
-  // Update clock
-  useEffect(() => {
-    const updateClock = () => {
-      const now = new Date();
-      // Brisbane time is AEST (UTC+10)
-      const brisbaneTime = new Date(now.toLocaleString("en-US", { timeZone: "Australia/Brisbane" }));
-      setCurrentTime(brisbaneTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
-    };
-
-    updateClock();
-    const interval = setInterval(updateClock, 1000);
-    return () => clearInterval(interval);
-  }, []);
-
-  // Fetch calendar events
-  useEffect(() => {
-    const fetchEvents = async () => {
-      try {
-        const response = await fetch("/api/calendar");
-        const data = await response.json();
-        setEvents(data);
-      } catch (error) {
-        console.error("Failed to fetch events:", error);
-        // Use sample data on error
-        setEvents(SAMPLE_EVENTS);
-      }
-    };
-
-    fetchEvents();
-    const interval = setInterval(fetchEvents, 5 * 60 * 1000); // Refresh every 5 minutes
-    return () => clearInterval(interval);
-  }, []);
-
-  const toggleTask = (id: number) => {
-    setTasks(tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
-  };
-
-  const getWeekDays = (baseDate: Date) => {
-    const week = [];
-    const curr = new Date(baseDate);
-    const first = curr.getDate() - curr.getDay();
-
-    for (let i = 0; i < 7; i++) {
-      const date = new Date(curr.setDate(first + i));
-      week.push(new Date(date));
-    }
-    return week;
-  };
-
-  const weekDays = getWeekDays(currentWeek);
-  const dayLabels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-  const filteredTasks = tasks.filter((t) => {
-    if (taskFilter.company !== "all" && t.co !== taskFilter.company) return false;
-    if (taskFilter.priority !== "all" && t.pr !== taskFilter.priority) return false;
-    if (taskFilter.status === "done" && !t.done) return false;
-    if (taskFilter.status === "pending" && t.done) return false;
-    return true;
-  });
-
-  return (
-    <div className="flex h-screen bg-base">
-      {/* Sidebar */}
-      <div
-        className={`fixed md:static w-64 h-screen bg-surface border-r border-surface2 flex flex-col p-6 transition-transform duration-300 z-50 md:z-auto ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"
-        }`}
-      >
-        {/* Brand Section */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-12 h-12 rounded-lg bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">PK</span>
-            </div>
-            <div>
-              <h1 className="font-bold text-lg leading-tight">Peter Kim</h1>
-              <p className="text-xs text-secondary">Command Center</p>
-            </div>
-          </div>
-          <div className="mt-4 p-4 bg-surface2 rounded-lg">
-            <p className="text-xs text-tertiary mb-1">현재 시간</p>
-            <p className="font-mono font-semibold text-text">{currentTime}</p>
-            <p className="text-xs text-secondary mt-1">Brisbane (AEST)</p>
-          </div>
-        </div>
-
-        {/* Navigation */}
-        <nav className="flex-1 space-y-2">
-          <NavItem icon="🔍" label="전체 현황" active={activeTab === "overview"} onClick={() => { setActiveTab("overview"); setSidebarOpen(false); }} />
-          <NavItem icon="📅" label="스케줄" active={activeTab === "schedule"} onClick={() => { setActiveTab("schedule"); setSidebarOpen(false); }} />
-          <NavItem icon="✓" label="업무 지시" active={activeTab === "tasks"} onClick={() => { setActiveTab("tasks"); setSidebarOpen(false); }} />
-          <NavItem icon="💰" label="재무" active={activeTab === "finance"} onClick={() => { setActiveTab("finance"); setSidebarOpen(false); }} />
-        </nav>
-
-        {/* Footer */}
-        <div className="text-xs text-tertiary border-t border-surface2 pt-4">
-          <p>v1.0.0</p>
-          <p className="mt-1 text-tertiary">© 2024 PK</p>
-        </div>
-      </div>
-
-      {/* Close sidebar on desktop click */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 md:hidden z-40"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto flex flex-col">
-        {/* Header */}
-        <header className="bg-surface border-b border-surface2 px-6 py-4 flex items-center justify-between sticky top-0 z-40">
-          <h2 className="text-xl font-semibold">
-            {activeTab === "overview" && "전체 현황"}
-            {activeTab === "schedule" && "스케줄"}
-            {activeTab === "tasks" && "업무 지시"}
-            {activeTab === "finance" && "재무"}
-          </h2>
-          <button
-            className="md:hidden p-2 hover:bg-surface2 rounded-lg transition"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-          >
-            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
-          </button>
-        </header>
-
-        {/* Content Area */}
-        <main className="flex-1 overflow-auto">
-          <div className="p-6 space-y-6">
-            {activeTab === "overview" && <OverviewTab events={events} />}
-            {activeTab === "schedule" && <ScheduleTab weekDays={weekDays} dayLabels={dayLabels} currentWeek={currentWeek} setCurrentWeek={setCurrentWeek} events={events} />}
-            {activeTab === "tasks" && <TasksTab tasks={filteredTasks} onToggle={toggleTask} filter={taskFilter} setFilter={setTaskFilter} />}
-            {activeTab === "finance" && <FinanceTab />}
-          </div>
-        </main>
-      </div>
-    </div>
-  );
-}
-
-function NavItem({ icon, label, active, onClick }: { icon: string; label: string; active: boolean; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition ${
-        active
-          ? "bg-blue-100 text-blue-600 font-semibold"
-          : "text-secondary hover:bg-surface2"
-      }`}
-    >
-      <span className="text-lg">{icon}</span>
-      <span>{label}</span>
-    </button>
-  );
-}
-
-function OverviewTab({ events }: { events: Event[] }) {
-  const upcomingFlights = events.filter((e) => e.type === "flight").slice(0, 2);
-
-  return (
-    <>
-      {/* Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <MetricCard title="활성 사업" value="4" color="blue" />
-        <MetricCard title="미완료 업무" value="5" color="amber" />
-        <MetricCard title="긴급 업무" value="2" color="red" />
-        <MetricCard title="오늘 일정" value={events.filter((e) => isToday(e.start)).length.toString()} color="green" />
-      </div>
-
-      {/* Flight Alert */}
-      {upcomingFlights.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
-          <h3 className="font-semibold text-amber-900 mb-3">✈️ 예정된 항공편</h3>
-          <div className="space-y-2">
-            {upcomingFlights.map((flight) => (
-              <div key={flight.id} className="flex justify-between items-center p-3 bg-white rounded border border-amber-100">
-                <div>
-                  <p className="font-medium text-text">{flight.summary}</p>
-                  <p className="text-sm text-secondary">{flight.location}</p>
-                </div>
-                <p className="text-sm text-amber-700 font-semibold">{new Date(flight.start).toLocaleString("ko-KR")}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Company Status */}
-      <div className="space-y-3">
-        <h3 className="font-semibold text-lg">사업 진행 상황</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <CompanyCard name="EIJ Construction" progress={65} color="green" />
-          <CompanyCard name="Pentahexagon" progress={40} color="purple" />
-          <CompanyCard name="BeyondFleet" progress={25} color="amber" />
-          <CompanyCard name="한국 인테리어" progress={10} color="gray" />
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="space-y-3">
-        <h3 className="font-semibold text-lg">빠른 동작</h3>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <ActionButton icon="📧" label="이메일" />
-          <ActionButton icon="📞" label="연락처" />
-          <ActionButton icon="📄" label="계약서" />
-          <ActionButton icon="🤖" label="AI 분석" />
-        </div>
-      </div>
-    </>
-  );
-}
-
-function ScheduleTab({
-  weekDays,
-  dayLabels,
-  currentWeek,
-  setCurrentWeek,
-  events,
-}: {
-  weekDays: Date[];
-  dayLabels: string[];
-  currentWeek: Date;
-  setCurrentWeek: (date: Date) => void;
-  events: Event[];
-}) {
-  const goToPreviousWeek = () => {
-    const prev = new Date(currentWeek);
-    prev.setDate(prev.getDate() - 7);
-    setCurrentWeek(prev);
-  };
-
-  const goToNextWeek = () => {
-    const next = new Date(currentWeek);
-    next.setDate(next.getDate() + 7);
-    setCurrentWeek(next);
-  };
-
-  const goToToday = () => {
-    setCurrentWeek(new Date());
-  };
-
-  return (
-    <>
-      {/* Calendar Controls */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex gap-2">
-          <button onClick={goToPreviousWeek} className="p-2 hover:bg-surface2 rounded-lg transition">
-            <ChevronLeft size={20} />
-          </button>
-          <button onClick={goToToday} className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
-            오늘
-          </button>
-          <button onClick={goToNextWeek} className="p-2 hover:bg-surface2 rounded-lg transition">
-            <ChevronRight size={20} />
-          </button>
-        </div>
-        <p className="text-secondary">
-          {weekDays[0].toLocaleDateString("ko-KR")} ~ {weekDays[6].toLocaleDateString("ko-KR")}
-        </p>
-      </div>
-
-      {/* Week Calendar */}
-      <div className="bg-surface rounded-lg border border-surface2 overflow-hidden">
-        <div className="grid grid-cols-7 gap-0 border-b border-surface2">
-          {dayLabels.map((label, idx) => (
-            <div key={label} className="p-4 text-center border-r border-surface2 last:border-r-0 bg-surface2">
-              <p className="font-semibold text-sm text-secondary">{label}</p>
-              <p className="text-lg font-bold text-text">{weekDays[idx].getDate()}</p>
-            </div>
-          ))}
-        </div>
-        <div className="grid grid-cols-7 gap-0 min-h-96">
-          {weekDays.map((day, idx) => {
-            const dayEvents = events.filter(
-              (e) => new Date(e.start).toDateString() === day.toDateString()
-            );
-            return (
-              <div
-                key={idx}
-                className="p-3 border-r border-surface2 last:border-r-0 border-b border-surface2 bg-white hover:bg-surface2 transition cursor-pointer"
-              >
-                <div className="space-y-2">
-                  {dayEvents.map((event) => (
-                    <div
-                      key={event.id}
-                      className="text-xs p-2 rounded bg-blue-100 text-blue-700 font-medium truncate hover:bg-blue-200 transition"
-                      title={event.summary}
-                    >
-                      {event.summary}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </>
-  );
-}
-
-function TasksTab({
-  tasks,
-  onToggle,
-  filter,
-  setFilter,
-}: {
-  tasks: Task[];
-  onToggle: (id: number) => void;
-  filter: { company: string; priority: string; status: string };
-  setFilter: (filter: any) => void;
-}) {
-  return (
-    <>
-      {/* Filters */}
-      <div className="flex gap-3 mb-6 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Filter size={18} className="text-secondary" />
-          <select
-            value={filter.company}
-            onChange={(e) => setFilter({ ...filter, company: e.target.value })}
-            className="px-3 py-2 rounded-lg border border-surface2 bg-surface text-sm"
-          >
-            <option value="all">모든 회사</option>
-            <option value="eij">EIJ</option>
-            <option value="penta">Pentahexagon</option>
-            <option value="bf">BeyondFleet</option>
-            <option value="kr">한국</option>
-          </select>
-        </div>
-
-        <select
-          value={filter.priority}
-          onChange={(e) => setFilter({ ...filter, priority: e.target.value })}
-          className="px-3 py-2 rounded-lg border border-surface2 bg-surface text-sm"
-        >
-          <option value="all">모든 우선순위</option>
-          <option value="urgent">긴급</option>
-          <option value="normal">일반</option>
-        </select>
-
-        <select
-          value={filter.status}
-          onChange={(e) => setFilter({ ...filter, status: e.target.value })}
-          className="px-3 py-2 rounded-lg border border-surface2 bg-surface text-sm"
-        >
-          <option value="all">모든 상태</option>
-          <option value="pending">대기중</option>
-          <option value="done">완료</option>
-        </select>
-      </div>
-
-      {/* Task List */}
-      <div className="space-y-3">
-        {tasks.map((task) => (
-          <div
-            key={task.id}
-            className={`flex items-center gap-4 p-4 rounded-lg border transition ${
-              task.done
-                ? "bg-surface2 border-surface2 opacity-60"
-                : "bg-surface border-surface2 hover:border-blue-300"
-            }`}
-          >
-            <button
-              onClick={() => onToggle(task.id)}
-              className={`flex-shrink-0 w-6 h-6 rounded border-2 flex items-center justify-center transition ${
-                task.done
-                  ? "bg-green-600 border-green-600"
-                  : "border-surface2 hover:border-blue-600"
-              }`}
-            >
-              {task.done && <Check size={16} className="text-white" />}
-            </button>
-
-            <div className="flex-1">
-              <p className={`font-medium ${task.done ? "line-through text-tertiary" : "text-text"}`}>
-                {task.text}
-              </p>
-            </div>
-
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <span className={`badge ${COMPANY_COLORS[task.co].light}`}>
-                {COMPANY_NAMES[task.co]}
-              </span>
-              <span className={`badge ${task.pr === "urgent" ? "badge-red" : "badge-amber"}`}>
-                {task.pr === "urgent" ? "긴급" : "일반"}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {tasks.length === 0 && (
-        <div className="text-center py-12">
-          <p className="text-tertiary">해당하는 업무가 없습니다</p>
-        </div>
-      )}
-
-      {/* Add Button */}
-      <button className="mt-6 flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
-        <Plus size={20} />
-        새 업무 추가
-      </button>
-    </>
-  );
-}
-
-function FinanceTab() {
-  const [data, setData] = useState([
-    { id: 1, name: "EIJ이번달", value: "12,500 AUD", type: "aud" },
-    { id: 2, name: "Pentahexagon", value: "8,900,000 KRW", type: "krw" },
-    { id: 3, name: "한국인테리어", value: "5,500,000 KRW", type: "krw" },
-    { id: 4, name: "총지출", value: "28,450 AUD", type: "aud" },
-  ]);
-
-  return (
-    <>
-      {/* Financial Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        {data.map((item) => (
-          <div key={item.id} className="bg-surface rounded-lg border border-surface2 p-4">
-            <p className="text-sm text-secondary mb-2">{item.name}</p>
-            <p className="text-2xl font-bold text-text">{item.value}</p>
-          </div>
-        ))}
-      </div>
-
-      {/* Financial Rows */}
-      <div className="bg-surface rounded-lg border border-surface2 overflow-hidden mb-6">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-surface2 bg-surface2">
-              <th className="px-6 py-3 text-left font-semibold text-sm">항목</th>
-              <th className="px-6 py-3 text-left font-semibold text-sm">회사</th>
-              <th className="px-6 py-3 text-right font-semibold text-sm">금액</th>
-              <th className="px-6 py-3 text-center font-semibold text-sm">상태</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b border-surface2 hover:bg-surface2 transition">
-              <td className="px-6 py-4">Smile Sushi 디자인비</td>
-              <td className="px-6 py-4"><span className="badge badge-green">EIJ</span></td>
-              <td className="px-6 py-4 text-right font-medium">5,000 AUD</td>
-              <td className="px-6 py-4 text-center"><span className="badge badge-green">입금</span></td>
-            </tr>
-            <tr className="border-b border-surface2 hover:bg-surface2 transition">
-              <td className="px-6 py-4">Pentahexagon 개발비</td>
-              <td className="px-6 py-4"><span className="badge badge-purple">Pentahexagon</span></td>
-              <td className="px-6 py-4 text-right font-medium">3,500,000 KRW</td>
-              <td className="px-6 py-4 text-center"><span className="badge badge-amber">대기중</span></td>
-            </tr>
-            <tr className="border-b border-surface2 hover:bg-surface2 transition">
-              <td className="px-6 py-4">BeyondFleet 컨설팅</td>
-              <td className="px-6 py-4"><span className="badge badge-amber">BeyondFleet</span></td>
-              <td className="px-6 py-4 text-right font-medium">2,800 AUD</td>
-              <td className="px-6 py-4 text-center"><span className="badge badge-red">미지급</span></td>
-            </tr>
-            <tr className="hover:bg-surface2 transition">
-              <td className="px-6 py-4">한국 인테리어 상담료</td>
-              <td className="px-6 py-4"><span className="badge badge-gray">한국</span></td>
-              <td className="px-6 py-4 text-right font-medium">1,200,000 KRW</td>
-              <td className="px-6 py-4 text-center"><span className="badge badge-blue">예정</span></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      {/* Quick Actions */}
-      <div className="flex gap-3">
-        <button className="flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium">
-          <Plus size={20} />
-          항목 추가
-        </button>
-        <button className="flex items-center gap-2 px-6 py-3 border border-surface2 rounded-lg hover:bg-surface2 transition font-medium">
-          🤖 AI 분석
-        </button>
-      </div>
-    </>
-  );
-}
-
-function MetricCard({ title, value, color }: { title: string; value: string; color: string }) {
-  const colors = {
-    blue: "bg-blue-100 text-blue-700",
-    green: "bg-green-100 text-green-700",
-    amber: "bg-amber-100 text-amber-700",
-    red: "bg-red-100 text-red-700",
-  };
-
-  return (
-    <div className={`rounded-lg p-4 ${colors[color as keyof typeof colors]}`}>
-      <p className="text-sm font-medium opacity-80">{title}</p>
-      <p className="text-3xl font-bold mt-2">{value}</p>
-    </div>
-  );
-}
-
-function CompanyCard({ name, progress, color }: { name: string; progress: number; color: string }) {
-  const colors = {
-    green: "bg-green-600",
-    purple: "bg-purple-600",
-    amber: "bg-amber-600",
-    gray: "bg-gray-600",
-  };
-
-  return (
-    <div className="bg-surface rounded-lg border border-surface2 p-4">
-      <div className="flex justify-between items-center mb-3">
-        <h4 className="font-semibold text-text">{name}</h4>
-        <p className="font-bold text-lg">{progress}%</p>
-      </div>
-      <div className="w-full bg-surface2 rounded-full h-2">
-        <div
-          className={`h-2 rounded-full transition-all ${colors[color as keyof typeof colors]}`}
-          style={{ width: `${progress}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function ActionButton({ icon, label }: { icon: string; label: string }) {
-  return (
-    <button className="bg-surface border border-surface2 rounded-lg p-4 hover:bg-surface2 transition text-center">
-      <p className="text-2xl mb-2">{icon}</p>
-      <p className="text-xs font-medium">{label}</p>
-    </button>
-  );
-}
-
-function isToday(dateString: string) {
-  const date = new Date(dateString);
-  const today = new Date();
-  return (
-    date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate()
-  );
-}
 
 const SAMPLE_EVENTS: Event[] = [
   {
@@ -619,3 +60,606 @@ const SAMPLE_EVENTS: Event[] = [
     type: "meeting",
   },
 ];
+
+export default function Home() {
+  const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const [currentTime, setCurrentTime] = useState("");
+  const [events, setEvents] = useState<Event[]>([]);
+  const [tasks, setTasks] = useState<Task[]>(SAMPLE_TASKS);
+  const [currentWeek, setCurrentWeek] = useState(new Date());
+
+  useEffect(() => {
+    const updateClock = () => {
+      const now = new Date();
+      const brisbaneTime = new Date(now.toLocaleString("en-US", { timeZone: "Australia/Brisbane" }));
+      setCurrentTime(brisbaneTime.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }));
+    };
+    updateClock();
+    const interval = setInterval(updateClock, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const response = await fetch("/api/calendar");
+        const data = await response.json();
+        setEvents(data);
+      } catch {
+        setEvents(SAMPLE_EVENTS);
+      }
+    };
+    fetchEvents();
+    const interval = setInterval(fetchEvents, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const toggleTask = (id: number) => {
+    setTasks(tasks.map((t) => (t.id === id ? { ...t, done: !t.done } : t)));
+  };
+
+  const tabs = [
+    { key: "overview" as TabType, icon: "📊", label: "현황" },
+    { key: "schedule" as TabType, icon: "📅", label: "스케줄" },
+    { key: "tasks" as TabType, icon: "✅", label: "업무" },
+    { key: "finance" as TabType, icon: "💰", label: "재무" },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", height: "100dvh", backgroundColor: "#f8f7f4" }}>
+      {/* Top Header */}
+      <header style={{
+        backgroundColor: "#1a1916",
+        color: "#ffffff",
+        padding: "12px 16px",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        flexShrink: 0,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{
+            width: "36px",
+            height: "36px",
+            borderRadius: "8px",
+            background: "linear-gradient(135deg, #1a56db, #3b82f6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 700,
+            fontSize: "14px",
+          }}>PK</div>
+          <div>
+            <div style={{ fontWeight: 700, fontSize: "15px", lineHeight: 1.2 }}>Peter Kim</div>
+            <div style={{ fontSize: "11px", color: "#a8a59e" }}>Command Center</div>
+          </div>
+        </div>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ fontFamily: "'DM Mono', monospace", fontSize: "16px", fontWeight: 600 }}>{currentTime}</div>
+          <div style={{ fontSize: "10px", color: "#a8a59e" }}>Brisbane AEST</div>
+        </div>
+      </header>
+
+      {/* Content Area */}
+      <main style={{ flex: 1, overflow: "auto", padding: "16px" }}>
+        {activeTab === "overview" && <OverviewTab events={events} />}
+        {activeTab === "schedule" && <ScheduleTab events={events} currentWeek={currentWeek} setCurrentWeek={setCurrentWeek} />}
+        {activeTab === "tasks" && <TasksTab tasks={tasks} onToggle={toggleTask} />}
+        {activeTab === "finance" && <FinanceTab />}
+      </main>
+
+      {/* Bottom Tab Bar - Mobile App Style */}
+      <nav style={{
+        backgroundColor: "#ffffff",
+        borderTop: "1px solid #f2f0ec",
+        display: "flex",
+        justifyContent: "space-around",
+        padding: "8px 0",
+        paddingBottom: "max(8px, env(safe-area-inset-bottom))",
+        flexShrink: 0,
+      }}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setActiveTab(tab.key)}
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "2px",
+              padding: "4px 12px",
+              border: "none",
+              background: "none",
+              color: activeTab === tab.key ? "#1a56db" : "#a8a59e",
+              fontSize: "10px",
+              fontWeight: activeTab === tab.key ? 700 : 500,
+              transition: "color 0.2s",
+            }}
+          >
+            <span style={{ fontSize: "22px" }}>{tab.icon}</span>
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </nav>
+    </div>
+  );
+}
+
+/* ===== OVERVIEW TAB ===== */
+function OverviewTab({ events }: { events: Event[] }) {
+  const upcomingFlights = events.filter((e) => e.type === "flight").slice(0, 2);
+  const todayEvents = events.filter((e) => isToday(e.start));
+  const companies = [
+    { name: "EIJ Construction", progress: 65, color: "#057a55" },
+    { name: "Pentahexagon", progress: 40, color: "#7e3bda" },
+    { name: "BeyondFleet", progress: 25, color: "#b45309" },
+    { name: "한국 인테리어", progress: 10, color: "#6b6860" },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      {/* Metric Cards */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+        <MetricCard title="활성 사업" value="4" bg="#dbeafe" color="#1a56db" />
+        <MetricCard title="미완료 업무" value="5" bg="#fef3c7" color="#b45309" />
+        <MetricCard title="긴급 업무" value="2" bg="#fee2e2" color="#c81e1e" />
+        <MetricCard title="오늘 일정" value={todayEvents.length.toString()} bg="#dcfce7" color="#057a55" />
+      </div>
+
+      {/* Flight Alert */}
+      {upcomingFlights.length > 0 && (
+        <div style={{ backgroundColor: "#fffbeb", border: "1px solid #fde68a", borderRadius: "12px", padding: "14px" }}>
+          <div style={{ fontWeight: 600, fontSize: "14px", marginBottom: "10px", color: "#92400e" }}>✈️ 예정된 항공편</div>
+          {upcomingFlights.map((f) => (
+            <div key={f.id} style={{
+              backgroundColor: "#ffffff",
+              borderRadius: "8px",
+              padding: "10px 12px",
+              marginBottom: "6px",
+              border: "1px solid #fde68a",
+            }}>
+              <div style={{ fontWeight: 600, fontSize: "13px" }}>{f.summary}</div>
+              <div style={{ fontSize: "11px", color: "#6b6860", marginTop: "2px" }}>
+                {f.location} · {new Date(f.start).toLocaleDateString("ko-KR", { month: "short", day: "numeric", weekday: "short" })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Company Progress */}
+      <div>
+        <div style={{ fontWeight: 700, fontSize: "15px", marginBottom: "10px" }}>사업 진행 상황</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {companies.map((c) => (
+            <div key={c.name} style={{
+              backgroundColor: "#ffffff",
+              borderRadius: "10px",
+              border: "1px solid #f2f0ec",
+              padding: "12px 14px",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
+                <span style={{ fontWeight: 600, fontSize: "13px" }}>{c.name}</span>
+                <span style={{ fontWeight: 700, fontSize: "14px", color: c.color }}>{c.progress}%</span>
+              </div>
+              <div style={{ backgroundColor: "#f2f0ec", borderRadius: "99px", height: "6px", overflow: "hidden" }}>
+                <div style={{ width: `${c.progress}%`, height: "100%", backgroundColor: c.color, borderRadius: "99px", transition: "width 0.5s" }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div>
+        <div style={{ fontWeight: 700, fontSize: "15px", marginBottom: "10px" }}>빠른 동작</div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "8px" }}>
+          {[
+            { icon: "📧", label: "이메일" },
+            { icon: "📞", label: "연락처" },
+            { icon: "📄", label: "계약서" },
+            { icon: "🤖", label: "AI 분석" },
+          ].map((a) => (
+            <button key={a.label} style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #f2f0ec",
+              borderRadius: "10px",
+              padding: "12px 4px",
+              textAlign: "center",
+              cursor: "pointer",
+            }}>
+              <div style={{ fontSize: "24px", marginBottom: "4px" }}>{a.icon}</div>
+              <div style={{ fontSize: "11px", fontWeight: 600, color: "#1a1916" }}>{a.label}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ===== SCHEDULE TAB ===== */
+function ScheduleTab({ events, currentWeek, setCurrentWeek }: { events: Event[]; currentWeek: Date; setCurrentWeek: (d: Date) => void }) {
+  const getWeekDays = (baseDate: Date) => {
+    const week = [];
+    const curr = new Date(baseDate);
+    const first = curr.getDate() - curr.getDay() + 1; // Monday first
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(curr);
+      d.setDate(first + i);
+      week.push(d);
+    }
+    return week;
+  };
+
+  const weekDays = getWeekDays(currentWeek);
+  const dayLabels = ["월", "화", "수", "목", "금", "토", "일"];
+  const today = new Date();
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      {/* Week Navigation */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <button onClick={() => { const d = new Date(currentWeek); d.setDate(d.getDate() - 7); setCurrentWeek(d); }}
+          style={{ padding: "8px 12px", border: "1px solid #f2f0ec", borderRadius: "8px", backgroundColor: "#fff", fontSize: "14px", cursor: "pointer" }}>
+          ◀
+        </button>
+        <button onClick={() => setCurrentWeek(new Date())}
+          style={{ padding: "8px 16px", backgroundColor: "#1a56db", color: "#fff", border: "none", borderRadius: "8px", fontWeight: 600, fontSize: "13px", cursor: "pointer" }}>
+          오늘
+        </button>
+        <button onClick={() => { const d = new Date(currentWeek); d.setDate(d.getDate() + 7); setCurrentWeek(d); }}
+          style={{ padding: "8px 12px", border: "1px solid #f2f0ec", borderRadius: "8px", backgroundColor: "#fff", fontSize: "14px", cursor: "pointer" }}>
+          ▶
+        </button>
+      </div>
+
+      {/* Week Date Range */}
+      <div style={{ textAlign: "center", fontSize: "13px", color: "#6b6860", fontWeight: 500 }}>
+        {weekDays[0].toLocaleDateString("ko-KR", { month: "long", day: "numeric" })} ~ {weekDays[6].toLocaleDateString("ko-KR", { month: "long", day: "numeric" })}
+      </div>
+
+      {/* Day Cards - Mobile Friendly */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+        {weekDays.map((day, idx) => {
+          const dayEvents = events.filter(
+            (e) => new Date(e.start).toDateString() === day.toDateString()
+          );
+          const isToday_ = day.toDateString() === today.toDateString();
+          const isPast = day < today && !isToday_;
+
+          return (
+            <div key={idx} style={{
+              backgroundColor: isToday_ ? "#eff6ff" : "#ffffff",
+              border: isToday_ ? "2px solid #1a56db" : "1px solid #f2f0ec",
+              borderRadius: "10px",
+              padding: "12px 14px",
+              opacity: isPast ? 0.5 : 1,
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: dayEvents.length > 0 ? "8px" : 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <span style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    width: "28px",
+                    height: "28px",
+                    borderRadius: "50%",
+                    backgroundColor: isToday_ ? "#1a56db" : "transparent",
+                    color: isToday_ ? "#ffffff" : "#1a1916",
+                    fontWeight: 700,
+                    fontSize: "14px",
+                  }}>
+                    {day.getDate()}
+                  </span>
+                  <span style={{ fontSize: "13px", color: isToday_ ? "#1a56db" : "#6b6860", fontWeight: 600 }}>
+                    {dayLabels[idx]}
+                    {isToday_ && <span style={{ marginLeft: "6px", fontSize: "11px", fontWeight: 700 }}>오늘</span>}
+                  </span>
+                </div>
+                {dayEvents.length > 0 && (
+                  <span style={{
+                    backgroundColor: isToday_ ? "#1a56db" : "#f2f0ec",
+                    color: isToday_ ? "#ffffff" : "#6b6860",
+                    borderRadius: "99px",
+                    padding: "2px 8px",
+                    fontSize: "11px",
+                    fontWeight: 600,
+                  }}>
+                    {dayEvents.length}개
+                  </span>
+                )}
+              </div>
+              {dayEvents.map((event) => (
+                <div key={event.id} style={{
+                  backgroundColor: isToday_ ? "#dbeafe" : "#f8f7f4",
+                  borderRadius: "6px",
+                  padding: "8px 10px",
+                  marginBottom: "4px",
+                  fontSize: "12px",
+                  fontWeight: 500,
+                  color: "#1a1916",
+                }}>
+                  {event.summary}
+                  {event.location && <span style={{ color: "#6b6860", marginLeft: "6px" }}>· {event.location}</span>}
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ===== TASKS TAB ===== */
+function TasksTab({ tasks, onToggle }: { tasks: Task[]; onToggle: (id: number) => void }) {
+  const [filter, setFilter] = useState("all");
+
+  const filtered = tasks.filter((t) => {
+    if (filter === "urgent") return t.pr === "urgent" && !t.done;
+    if (filter === "done") return t.done;
+    if (filter === "pending") return !t.done;
+    return true;
+  });
+
+  const coColors: Record<string, { bg: string; color: string }> = {
+    eij: { bg: "#dcfce7", color: "#057a55" },
+    penta: { bg: "#f3e8ff", color: "#7e3bda" },
+    bf: { bg: "#fef3c7", color: "#b45309" },
+    kr: { bg: "#f0ede6", color: "#6b6860" },
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+      {/* Filter Pills */}
+      <div style={{ display: "flex", gap: "6px", overflowX: "auto", paddingBottom: "4px" }}>
+        {[
+          { key: "all", label: "전체" },
+          { key: "urgent", label: "🔴 긴급" },
+          { key: "pending", label: "대기중" },
+          { key: "done", label: "완료" },
+        ].map((f) => (
+          <button
+            key={f.key}
+            onClick={() => setFilter(f.key)}
+            style={{
+              padding: "6px 14px",
+              borderRadius: "99px",
+              border: "none",
+              backgroundColor: filter === f.key ? "#1a56db" : "#f2f0ec",
+              color: filter === f.key ? "#ffffff" : "#6b6860",
+              fontSize: "12px",
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              cursor: "pointer",
+            }}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Task List */}
+      {filtered.map((task) => (
+        <div
+          key={task.id}
+          onClick={() => onToggle(task.id)}
+          style={{
+            backgroundColor: task.done ? "#f8f7f4" : "#ffffff",
+            border: task.pr === "urgent" && !task.done ? "1px solid #fca5a5" : "1px solid #f2f0ec",
+            borderRadius: "10px",
+            padding: "12px 14px",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "10px",
+            opacity: task.done ? 0.5 : 1,
+            cursor: "pointer",
+            transition: "opacity 0.2s",
+          }}
+        >
+          {/* Checkbox */}
+          <div style={{
+            width: "22px",
+            height: "22px",
+            borderRadius: "6px",
+            border: task.done ? "none" : "2px solid #d1cec7",
+            backgroundColor: task.done ? "#057a55" : "transparent",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            marginTop: "1px",
+          }}>
+            {task.done && <span style={{ color: "#fff", fontSize: "12px", fontWeight: 700 }}>✓</span>}
+          </div>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{
+              fontWeight: 500,
+              fontSize: "13px",
+              textDecoration: task.done ? "line-through" : "none",
+              color: task.done ? "#a8a59e" : "#1a1916",
+              lineHeight: 1.4,
+            }}>
+              {task.text}
+            </div>
+            <div style={{ display: "flex", gap: "6px", marginTop: "6px" }}>
+              <span style={{
+                ...coColors[task.co],
+                backgroundColor: coColors[task.co].bg,
+                color: coColors[task.co].color,
+                padding: "2px 8px",
+                borderRadius: "99px",
+                fontSize: "10px",
+                fontWeight: 600,
+              }}>
+                {COMPANY_NAMES[task.co]}
+              </span>
+              {task.pr === "urgent" && !task.done && (
+                <span style={{
+                  backgroundColor: "#fee2e2",
+                  color: "#c81e1e",
+                  padding: "2px 8px",
+                  borderRadius: "99px",
+                  fontSize: "10px",
+                  fontWeight: 600,
+                }}>
+                  긴급
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      ))}
+
+      {filtered.length === 0 && (
+        <div style={{ textAlign: "center", padding: "40px 0", color: "#a8a59e", fontSize: "14px" }}>
+          해당하는 업무가 없습니다
+        </div>
+      )}
+
+      {/* Add Button */}
+      <button style={{
+        padding: "14px",
+        backgroundColor: "#1a56db",
+        color: "#ffffff",
+        border: "none",
+        borderRadius: "10px",
+        fontWeight: 600,
+        fontSize: "14px",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: "6px",
+      }}>
+        + 새 업무 추가
+      </button>
+    </div>
+  );
+}
+
+/* ===== FINANCE TAB ===== */
+function FinanceTab() {
+  const metrics = [
+    { name: "EIJ 이번달", value: "12,500", unit: "AUD", color: "#057a55" },
+    { name: "Pentahexagon", value: "8,900,000", unit: "KRW", color: "#7e3bda" },
+    { name: "한국인테리어", value: "5,500,000", unit: "KRW", color: "#6b6860" },
+    { name: "총 지출", value: "28,450", unit: "AUD", color: "#c81e1e" },
+  ];
+
+  const rows = [
+    { name: "Smile Sushi 디자인비", co: "EIJ", amount: "5,000 AUD", status: "입금", statusColor: "#057a55", statusBg: "#dcfce7" },
+    { name: "Pentahexagon 개발비", co: "Penta", amount: "3,500,000 KRW", status: "대기중", statusColor: "#b45309", statusBg: "#fef3c7" },
+    { name: "BeyondFleet 컨설팅", co: "BF", amount: "2,800 AUD", status: "미지급", statusColor: "#c81e1e", statusBg: "#fee2e2" },
+    { name: "한국 인테리어 상담료", co: "한국", amount: "1,200,000 KRW", status: "예정", statusColor: "#1a56db", statusBg: "#dbeafe" },
+  ];
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+      {/* Financial Metrics */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "10px" }}>
+        {metrics.map((m) => (
+          <div key={m.name} style={{
+            backgroundColor: "#ffffff",
+            border: "1px solid #f2f0ec",
+            borderRadius: "10px",
+            padding: "12px",
+          }}>
+            <div style={{ fontSize: "11px", color: "#6b6860", marginBottom: "4px" }}>{m.name}</div>
+            <div style={{ fontSize: "18px", fontWeight: 700, color: m.color }}>{m.value}</div>
+            <div style={{ fontSize: "10px", color: "#a8a59e" }}>{m.unit}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Transaction List (Card style for mobile) */}
+      <div>
+        <div style={{ fontWeight: 700, fontSize: "15px", marginBottom: "10px" }}>거래 내역</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {rows.map((r) => (
+            <div key={r.name} style={{
+              backgroundColor: "#ffffff",
+              border: "1px solid #f2f0ec",
+              borderRadius: "10px",
+              padding: "12px 14px",
+            }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                <div>
+                  <div style={{ fontWeight: 600, fontSize: "13px", color: "#1a1916" }}>{r.name}</div>
+                  <div style={{ fontSize: "11px", color: "#6b6860", marginTop: "2px" }}>{r.co}</div>
+                </div>
+                <div style={{ textAlign: "right" }}>
+                  <div style={{ fontWeight: 700, fontSize: "14px", color: "#1a1916" }}>{r.amount}</div>
+                  <span style={{
+                    backgroundColor: r.statusBg,
+                    color: r.statusColor,
+                    padding: "2px 8px",
+                    borderRadius: "99px",
+                    fontSize: "10px",
+                    fontWeight: 600,
+                    display: "inline-block",
+                    marginTop: "4px",
+                  }}>
+                    {r.status}
+                  </span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Action Buttons */}
+      <div style={{ display: "flex", gap: "8px" }}>
+        <button style={{
+          flex: 1,
+          padding: "12px",
+          backgroundColor: "#1a56db",
+          color: "#ffffff",
+          border: "none",
+          borderRadius: "10px",
+          fontWeight: 600,
+          fontSize: "13px",
+          cursor: "pointer",
+        }}>
+          + 항목 추가
+        </button>
+        <button style={{
+          flex: 1,
+          padding: "12px",
+          backgroundColor: "#ffffff",
+          color: "#1a1916",
+          border: "1px solid #f2f0ec",
+          borderRadius: "10px",
+          fontWeight: 600,
+          fontSize: "13px",
+          cursor: "pointer",
+        }}>
+          🤖 AI 분석
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ===== HELPER COMPONENTS ===== */
+function MetricCard({ title, value, bg, color }: { title: string; value: string; bg: string; color: string }) {
+  return (
+    <div style={{
+      backgroundColor: bg,
+      borderRadius: "10px",
+      padding: "14px",
+    }}>
+      <div style={{ fontSize: "11px", fontWeight: 500, color, opacity: 0.8 }}>{title}</div>
+      <div style={{ fontSize: "28px", fontWeight: 700, color, marginTop: "4px" }}>{value}</div>
+    </div>
+  );
+}
+
+function isToday(dateString: string) {
+  const date = new Date(dateString);
+  const today = new Date();
+  return date.getFullYear() === today.getFullYear() && date.getMonth() === today.getMonth() && date.getDate() === today.getDate();
+}
