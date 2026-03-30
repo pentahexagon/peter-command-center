@@ -10,43 +10,14 @@ interface CalendarEvent {
   type?: string;
 }
 
-// Sample data for demo mode
+// Real data from Google Calendar - Last synced: 2026-03-29
 const SAMPLE_EVENTS: CalendarEvent[] = [
   {
-    id: "1",
-    summary: "팀 스탠드업",
-    start: new Date().toISOString(),
-    end: new Date(Date.now() + 1800000).toISOString(),
-    type: "meeting",
-  },
-  {
-    id: "2",
-    summary: "Brisbane 출장 ✈️",
-    start: new Date(Date.now() + 86400000).toISOString(),
-    end: new Date(Date.now() + 172800000).toISOString(),
-    location: "Brisbane, Australia",
-    type: "flight",
-  },
-  {
-    id: "3",
-    summary: "EIJ Construction 클라이언트 미팅",
-    start: new Date(Date.now() + 259200000).toISOString(),
-    end: new Date(Date.now() + 262800000).toISOString(),
-    type: "meeting",
-  },
-  {
-    id: "4",
-    summary: "Pentahexagon 프로젝트 리뷰",
-    start: new Date(Date.now() + 345600000).toISOString(),
-    end: new Date(Date.now() + 349200000).toISOString(),
-    type: "meeting",
-  },
-  {
-    id: "5",
-    summary: "서울 출장 ✈️",
-    start: new Date(Date.now() + 432000000).toISOString(),
-    end: new Date(Date.now() + 518400000).toISOString(),
-    location: "Seoul, Korea",
+    id: "flight-cairns",
+    summary: "Flight to 케언즈 (JQ 934)",
+    start: "2026-03-31T18:35:00+10:00",
+    end: "2026-03-31T21:00:00+10:00",
+    location: "브리즈번 BNE → 케언즈",
     type: "flight",
   },
 ];

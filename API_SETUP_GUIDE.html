@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>API 연동 설정 가이드 - Peter Kim Command Center</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f8f7f4; color: #1a1916; line-height: 1.6; padding: 20px; max-width: 700px; margin: 0 auto; }
+h1 { font-size: 24px; margin-bottom: 8px; }
+h2 { font-size: 18px; margin: 28px 0 12px; padding-top: 20px; border-top: 1px solid #e8e6e1; }
+h3 { font-size: 15px; margin: 16px 0 8px; color: #1a56db; }
+p { margin-bottom: 10px; font-size: 14px; }
+.subtitle { color: #6b6860; font-size: 14px; margin-bottom: 24px; }
+.step { background: #fff; border: 1px solid #f2f0ec; border-radius: 12px; padding: 16px; margin-bottom: 10px; }
+.step-num { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; background: #1a56db; color: #fff; border-radius: 50%; font-size: 12px; font-weight: 700; margin-right: 8px; }
+.step-title { font-weight: 600; font-size: 14px; }
+.step p { font-size: 13px; color: #6b6860; margin-top: 6px; }
+.url { background: #f2f0ec; padding: 4px 10px; border-radius: 6px; font-family: monospace; font-size: 12px; word-break: break-all; display: block; margin: 8px 0; }
+.env { background: #1a1916; color: #a8ffa8; padding: 12px 14px; border-radius: 8px; font-family: monospace; font-size: 12px; margin: 8px 0; white-space: pre-wrap; word-break: break-all; }
+.alert { background: #fef2f2; border: 1px solid #fca5a5; border-radius: 10px; padding: 12px; margin: 12px 0; font-size: 13px; color: #991b1b; }
+.success { background: #dcfce7; border: 1px solid #86efac; border-radius: 10px; padding: 12px; margin: 12px 0; font-size: 13px; color: #166534; }
+.time { color: #a8a59e; font-size: 12px; }
+</style>
+</head>
+<body>
+
+<h1>🔗 API 연동 설정 가이드</h1>
+<p class="subtitle">이 가이드를 따라하면 대시보드가 실시간으로 데이터를 가져옵니다. <span class="time">예상 소요: 15~20분</span></p>
+
+<h2>1️⃣ Notion API 연동 (5분)</h2>
+
+<div class="step">
+  <span class="step-num">1</span>
+  <span class="step-title">Notion Integration 만들기</span>
+  <p>아래 링크에서 "New integration" 클릭</p>
+  <span class="url">https://www.notion.so/my-integrations</span>
+  <p>Name: <b>PK Command Center</b><br>워크스페이스: <b>seongyeopKim님의 워크스페이스 HQ</b> 선택<br>"Submit" 클릭</p>
+</div>
+
+<div class="step">
+  <span class="step-num">2</span>
+  <span class="step-title">API 토큰 복사</span>
+  <p>생성 후 나오는 "Internal Integration Secret"을 복사합니다 (ntn_으로 시작)</p>
+</div>
+
+<div class="step">
+  <span class="step-num">3</span>
+  <span class="step-title">프로젝트 보드에 연결</span>
+  <p>Notion에서 "👨🏻‍💻 프로젝트 보드(업무)" 페이지 열기 → 우측 상단 "..." → "연결 추가" → "PK Command Center" 선택</p>
+</div>
+
+<div class="step">
+  <span class="step-num">4</span>
+  <span class="step-title">Vercel에 환경변수 등록</span>
+  <span class="url">https://vercel.com/pentahexagon/peter-command-center/settings/environment-variables</span>
+  <p>아래 2개를 추가:</p>
+  <div class="env">NOTION_API_TOKEN = ntn_여기에_복사한_토큰
+NOTION_DATABASE_ID = 31a7a0d68bfb8044917ce8cbfd7821e2</div>
+</div>
+
+<div class="success">✅ Notion 연동 완료! Vercel에서 "Redeploy" 하면 실시간 업무 데이터가 표시됩니다.</div>
+
+<h2>2️⃣ Google Calendar API 연동 (10분)</h2>
+
+<div class="step">
+  <span class="step-num">1</span>
+  <span class="step-title">Google Cloud 프로젝트 생성</span>
+  <span class="url">https://console.cloud.google.com/projectcreate</span>
+  <p>프로젝트 이름: <b>PK Command Center</b></p>
+</div>
+
+<div class="step">
+  <span class="step-num">2</span>
+  <span class="step-title">Calendar API 활성화</span>
+  <span class="url">https://console.cloud.google.com/apis/library/calendar-json.googleapis.com</span>
+  <p>"Enable" 클릭</p>
+</div>
+
+<div class="step">
+  <span class="step-num">3</span>
+  <span class="step-title">OAuth 동의 화면 설정</span>
+  <span class="url">https://console.cloud.google.com/apis/credentials/consent</span>
+  <p>User Type: "External" → 앱 이름: "PK Command Center" → 이메일 입력 → 저장</p>
+</div>
+
+<div class="step">
+  <span class="step-num">4</span>
+  <span class="step-title">OAuth 클라이언트 ID 생성</span>
+  <span class="url">https://console.cloud.google.com/apis/credentials</span>
+  <p>"+ CREATE CREDENTIALS" → "OAuth client ID" → 앱 유형: "Web application"<br>
+  Authorized redirect URIs에 추가: <b>https://developers.google.com/oauthplayground</b></p>
+  <p>생성 후 <b>Client ID</b>와 <b>Client Secret</b>을 복사</p>
+</div>
+
+<div class="step">
+  <span class="step-num">5</span>
+  <span class="step-title">Refresh Token 발급</span>
+  <span class="url">https://developers.google.com/oauthplayground</span>
+  <p>우측 상단 ⚙️ → "Use your own OAuth credentials" 체크 → Client ID/Secret 입력</p>
+  <p>Step 1: "Google Calendar API v3" → "calendar.events.readonly" 선택 → "Authorize APIs"</p>
+  <p>eijconstruction0316@gmail.com 계정으로 로그인</p>
+  <p>Step 2: "Exchange authorization code for tokens" 클릭 → <b>Refresh token</b> 복사</p>
+</div>
+
+<div class="step">
+  <span class="step-num">6</span>
+  <span class="step-title">Vercel에 환경변수 등록</span>
+  <span class="url">https://vercel.com/pentahexagon/peter-command-center/settings/environment-variables</span>
+  <p>아래 4개를 추가:</p>
+  <div class="env">GOOGLE_CLIENT_ID = 여기에_클라이언트_ID
+GOOGLE_CLIENT_SECRET = 여기에_클라이언트_시크릿
+GOOGLE_REFRESH_TOKEN = 여기에_리프레시_토큰
+GOOGLE_CALENDAR_ID = eijconstruction0316@gmail.com</div>
+</div>
+
+<div class="success">✅ Google Calendar 연동 완료! Vercel에서 "Redeploy" 하면 실제 일정이 자동으로 표시됩니다.</div>
+
+<h2>3️⃣ Vercel 재배포 (1분)</h2>
+
+<div class="step">
+  <span class="step-num">1</span>
+  <span class="step-title">환경변수 등록 후 재배포</span>
+  <span class="url">https://vercel.com/pentahexagon/peter-command-center/deployments</span>
+  <p>가장 최근 배포의 "..." → "Redeploy" 클릭</p>
+</div>
+
+<div class="alert">⚠️ 환경변수는 보안 정보입니다. 절대 다른 사람에게 공유하지 마세요.</div>
+
+<h2 style="border-top: none; margin-top: 20px;">📌 현재 상태</h2>
+<p>지금은 2026년 3월 29일에 가져온 캐시 데이터가 표시되고 있습니다. 위 설정을 완료하면 "🟢 실시간"으로 변경됩니다.</p>
+
+</body>
+</html>

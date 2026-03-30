@@ -47,7 +47,9 @@ export default function Home() {
   const [currentTime, setCurrentTime] = useState("");
   const [currentDate, setCurrentDate] = useState("");
   const [events, setEvents] = useState<CalEvent[]>(REAL_EVENTS);
+  const [tasks, setTasks] = useState<NotionTask[]>(NOTION_TASKS);
   const [currentWeek, setCurrentWeek] = useState(new Date());
+  const [dataSource, setDataSource] = useState({ calendar: "캐시", notion: "캐시" });
 
   useEffect(() => {
     const updateClock = () => {
@@ -61,6 +63,7 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
+  // Fetch Calendar events
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -68,6 +71,7 @@ export default function Home() {
         const data = await response.json();
         if (Array.isArray(data) && data.length > 0) {
           setEvents(data);
+          setDataSource(prev => ({ ...prev, calendar: "실시간" }));
         }
       } catch {
         // Keep REAL_EVENTS as fallback
@@ -75,6 +79,25 @@ export default function Home() {
     };
     fetchEvents();
     const interval = setInterval(fetchEvents, 5 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Fetch Notion tasks
+  useEffect(() => {
+    const fetchTasks = async () => {
+      try {
+        const response = await fetch("/api/notion");
+        const data = await response.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setTasks(data);
+          setDataSource(prev => ({ ...prev, notion: "실시간" }));
+        }
+      } catch {
+        // Keep NOTION_TASKS as fallback
+      }
+    };
+    fetchTasks();
+    const interval = setInterval(fetchTasks, 5 * 60 * 1000);
     return () => clearInterval(interval);
   }, []);
 
@@ -117,9 +140,9 @@ export default function Home() {
 
       {/* Content Area */}
       <main style={{ flex: 1, overflow: "auto", padding: "16px" }}>
-        {activeTab === "overview" && <OverviewTab events={events} tasks={NOTION_TASKS} />}
+        {activeTab === "overview" && <OverviewTab events={events} tasks={tasks} dataSource={dataSource} />}
         {activeTab === "schedule" && <ScheduleTab events={events} currentWeek={currentWeek} setCurrentWeek={setCurrentWeek} />}
-        {activeTab === "tasks" && <TasksTab tasks={NOTION_TASKS} />}
+        {activeTab === "tasks" && <TasksTab tasks={tasks} dataSource={dataSource.notion} />}
         {activeTab === "finance" && <FinanceTab />}
       </main>
 
@@ -154,7 +177,7 @@ export default function Home() {
 }
 
 /* ===== OVERVIEW TAB ===== */
-function OverviewTab({ events, tasks }: { events: CalEvent[]; tasks: NotionTask[] }) {
+function OverviewTab({ events, tasks, dataSource }: { events: CalEvent[]; tasks: NotionTask[]; dataSource: { calendar: string; notion: string } }) {
   const inProgressTasks = tasks.filter((t) => t.status === "진행 중");
   const flights = events.filter((e) => e.type === "flight" || e.summary?.toLowerCase().includes("flight"));
   const overdueTasks = tasks.filter((t) => t.deadline && new Date(t.deadline) < new Date() && t.status !== "완료");
@@ -257,6 +280,29 @@ function OverviewTab({ events, tasks }: { events: CalEvent[]; tasks: NotionTask[
               <div style={{ fontSize: "11px", fontWeight: 600, color: "#1a1916" }}>{a.label}</div>
             </button>
           ))}
+        </div>
+      </div>
+
+      {/* Data Source Status */}
+      <div style={{ backgroundColor: "#f8f7f4", borderRadius: "12px", padding: "12px 14px", border: "1px solid #f2f0ec" }}>
+        <div style={{ fontSize: "12px", fontWeight: 600, marginBottom: "8px", color: "#6b6860" }}>📡 데이터 연결 상태</div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}>
+            <span style={{ color: "#6b6860" }}>Google Calendar</span>
+            <span style={{ color: dataSource.calendar === "실시간" ? "#057a55" : "#b45309", fontWeight: 600 }}>
+              {dataSource.calendar === "실시간" ? "🟢 실시간" : "🟡 캐시 (3/29)"}
+            </span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}>
+            <span style={{ color: "#6b6860" }}>Notion 업무</span>
+            <span style={{ color: dataSource.notion === "실시간" ? "#057a55" : "#b45309", fontWeight: 600 }}>
+              {dataSource.notion === "실시간" ? "🟢 실시간" : "🟡 캐시 (3/29)"}
+            </span>
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px" }}>
+            <span style={{ color: "#6b6860" }}>Google Drive</span>
+            <span style={{ color: "#a8a59e", fontWeight: 600 }}>⚪ 준비 중</span>
+          </div>
         </div>
       </div>
     </div>
@@ -368,7 +414,7 @@ function ScheduleTab({ events, currentWeek, setCurrentWeek }: { events: CalEvent
 }
 
 /* ===== TASKS TAB (Notion 연동) ===== */
-function TasksTab({ tasks }: { tasks: NotionTask[] }) {
+function TasksTab({ tasks, dataSource }: { tasks: NotionTask[]; dataSource: string }) {
   const [filter, setFilter] = useState("all");
 
   const filtered = tasks.filter((t) => {
@@ -390,7 +436,7 @@ function TasksTab({ tasks }: { tasks: NotionTask[] }) {
       {/* Source Label */}
       <div style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "11px", color: "#a8a59e" }}>
         <span>📋</span>
-        <span>Notion 프로젝트 보드에서 연동됨</span>
+        <span>Notion 프로젝트 보드 · {dataSource === "실시간" ? "🟢 실시간" : "🟡 캐시 데이터 (3/29)"}</span>
       </div>
 
       {/* Filter Pills */}
